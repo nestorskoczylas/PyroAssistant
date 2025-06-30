@@ -11,10 +11,10 @@ type TirLine = {
 };
 
 const COLORS = {
-  default: '#34495e',    // Bleu-gris — par défaut
-  ready: '#2ecc71',      // Vert — temps confortable
-  warning: '#f39c12',    // Orange — approche
-  danger: '#e74c3c',     // Rouge — tir immédiat
+  default: '#34495e',
+  ready: '#2ecc71',
+  warning: '#f39c12',
+  danger: '#e74c3c',
 };
 
 export default function ExecutionScreen() {
@@ -28,7 +28,9 @@ export default function ExecutionScreen() {
   const nextLine = lines.find(line => line.time >= elapsed);
   const timeToNext = nextLine ? nextLine.time - elapsed : null;
 
-  // Chargement initial
+  const lastLineIdRef = useRef<string | null>(null);
+
+  // Chargement des lignes
   useEffect(() => {
     (async () => {
       try {
@@ -41,7 +43,7 @@ export default function ExecutionScreen() {
     })();
   }, []);
 
-  // Chronomètre
+  // Tick timer
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -54,10 +56,15 @@ export default function ExecutionScreen() {
     };
   }, [running]);
 
-  // Vibration à 0
+  // Vibration à chaque nouvelle ligne
   useEffect(() => {
-    if (timeToNext === 0) Vibration.vibrate(1000);
-  }, [timeToNext]);
+    if (!running || !nextLine) return;
+
+    if (lastLineIdRef.current !== nextLine.id && nextLine.time === elapsed) {
+      Vibration.vibrate(1000);
+      lastLineIdRef.current = nextLine.id;
+    }
+  }, [elapsed, nextLine, running]);
 
   // Décompte initial
   useEffect(() => {
@@ -75,8 +82,11 @@ export default function ExecutionScreen() {
     if (running || countdown !== null) {
       setRunning(false);
       setCountdown(null);
-    } else {
+    } else if (elapsed === 0) {
       setCountdown(5);
+      lastLineIdRef.current = null;
+    } else {
+      setRunning(true);
     }
   };
 
@@ -84,6 +94,7 @@ export default function ExecutionScreen() {
     setRunning(false);
     setElapsed(0);
     setCountdown(null);
+    lastLineIdRef.current = null;
   };
 
   const backgroundColor = getBackgroundColor({ running, countdown, timeToNext });
@@ -96,24 +107,31 @@ export default function ExecutionScreen() {
 
       <Text style={styles.title}>Exécution</Text>
 
-      {countdown !== null && (
-        <Text style={styles.countdownText}>Départ dans {countdown}...</Text>
-      )}
+      {/* Bloc compte à rebours (espace réservé même s’il disparaît) */}
+      <View style={styles.countdownContainer}>
+        {countdown !== null ? (
+          <Text style={styles.countdownText}>{countdown}</Text>
+        ) : (
+          <Text style={styles.countdownPlaceholder} />
+        )}
+      </View>
 
+      {/* Bloc info ligne */}
       {nextLine ? (
-        <>
+        <View style={styles.infoBlock}>
           <Text style={styles.nextText}>Prochaine ligne à tirer :</Text>
           <Text style={styles.lineText}>
             Ligne #{lines.indexOf(nextLine) + 1} — {formatTime(nextLine.time)}
           </Text>
           <Text style={styles.timerText}>Temps restant : {timeToNext}s</Text>
-        </>
+        </View>
       ) : (
         <Text style={styles.finishedText}>Séquence terminée !</Text>
       )}
 
       <Text style={styles.elapsedText}>Temps écoulé : {formatTime(elapsed)}</Text>
 
+      {/* Boutons */}
       <View style={styles.buttons}>
         <TouchableOpacity style={styles.button} onPress={toggleRun}>
           <Text style={styles.buttonText}>
@@ -128,8 +146,7 @@ export default function ExecutionScreen() {
   );
 }
 
-// 🧠 Fonctions utilitaires
-
+// Helpers
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -139,7 +156,7 @@ function formatTime(seconds: number): string {
 function getBackgroundColor({
   running,
   countdown,
-  timeToNext
+  timeToNext,
 }: {
   running: boolean;
   countdown: number | null;
@@ -154,6 +171,7 @@ function getBackgroundColor({
   }
   return COLORS.default;
 }
+
 
 // 🎨 Styles
 const styles = StyleSheet.create({
@@ -231,5 +249,19 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
+  },
+    countdownContainer: {
+    height: 100,
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  countdownPlaceholder: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: 'transparent',
+  },
+  infoBlock: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
 });
