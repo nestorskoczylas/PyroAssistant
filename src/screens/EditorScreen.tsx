@@ -1,35 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet
+  View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type TirLine = {
-  id: string;
-  time: number;
-};
-
-const STORAGE_KEY = 'tirLines';
+import { TirLine } from '../constants/types';
+import { COLORS, SIZES } from '../constants/theme';
+import { STORAGE_KEYS } from '../constants/storage';
 
 export default function EditorScreen() {
   const [lines, setLines] = useState<TirLine[]>([]);
   const [minutes, setMinutes] = useState('');
   const [seconds, setSeconds] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
-
-  const navigation = useNavigation();
-  const secondsRef = useRef<TextInput>(null);
-
   const [statusMessage, setStatusMessage] = useState('');
+
+  const secondsRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const loadLines = async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          setLines(JSON.parse(saved));
-        }
+        const saved = await AsyncStorage.getItem(STORAGE_KEYS.TIR_LINES);
+        if (saved) setLines(JSON.parse(saved));
       } catch (e) {
         console.error('Erreur de chargement', e);
       }
@@ -39,7 +30,7 @@ export default function EditorScreen() {
 
   const saveLines = async (linesToSave: TirLine[]) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(linesToSave));
+      await AsyncStorage.setItem(STORAGE_KEYS.TIR_LINES, JSON.stringify(linesToSave));
       setStatusMessage('Sauvegardé avec succès');
       setTimeout(() => setStatusMessage(''), 2000);
     } catch (e) {
@@ -54,12 +45,9 @@ export default function EditorScreen() {
     setTimeout(() => setStatusMessage(''), 2000);
   };
 
-
   const handleMinutesChange = (text: string) => {
     setMinutes(text);
-    if (text.length >= 2) {
-      secondsRef.current?.focus();
-    }
+    if (text.length >= 2) secondsRef.current?.focus();
   };
 
   const addOrUpdateLine = () => {
@@ -68,16 +56,13 @@ export default function EditorScreen() {
     const totalSeconds = min * 60 + sec;
 
     if (editId) {
-      const updated = lines
-        .map(line => line.id === editId ? { ...line, time: totalSeconds } : line)
-        .sort((a, b) => a.time - b.time);
+      const updated = lines.map(line =>
+        line.id === editId ? { ...line, time: totalSeconds } : line
+      ).sort((a, b) => a.time - b.time);
       setLines(updated);
       setEditId(null);
     } else {
-      const newLine: TirLine = {
-        id: Date.now().toString(),
-        time: totalSeconds,
-      };
+      const newLine: TirLine = { id: Date.now().toString(), time: totalSeconds };
       const updated = [...lines, newLine].sort((a, b) => a.time - b.time);
       setLines(updated);
     }
@@ -107,13 +92,7 @@ export default function EditorScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-
-        {statusMessage ? (
-          <Text style={styles.statusMessage}>{statusMessage}</Text>
-        ) : null}
+        {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
       </View>
 
       <Text style={styles.title}>Éditeur de feuille de tir</Text>
@@ -123,7 +102,7 @@ export default function EditorScreen() {
           <TextInput
             style={styles.input}
             placeholder="Min"
-            placeholderTextColor={'white'}
+            placeholderTextColor={COLORS.textMuted}
             keyboardType="numeric"
             value={minutes}
             onChangeText={handleMinutesChange}
@@ -132,7 +111,7 @@ export default function EditorScreen() {
           <TextInput
             style={styles.input}
             placeholder="Sec"
-            placeholderTextColor={'white'}
+            placeholderTextColor={COLORS.textMuted}
             keyboardType="numeric"
             value={seconds}
             onChangeText={setSeconds}
@@ -140,7 +119,11 @@ export default function EditorScreen() {
             maxLength={5}
           />
         </View>
-        <Button title={editId ? 'Modifier' : 'Ajouter'} onPress={addOrUpdateLine} />
+        <TouchableOpacity style={styles.actionButton} onPress={addOrUpdateLine}>
+          <Text style={styles.actionButtonText}>
+            {editId ? 'Modifier' : 'Ajouter'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -153,11 +136,11 @@ export default function EditorScreen() {
                 Ligne {index + 1} — {formatTime(item.time)}
               </Text>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={() => editLine(item)} style={styles.actionButton}>
-                  <Text style={styles.actionText}>✎</Text>
+                <TouchableOpacity onPress={() => editLine(item)} style={styles.smallButton}>
+                  <Text style={styles.smallButtonText}>✎</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteLine(item.id)} style={styles.actionButton}>
-                  <Text style={styles.actionText}>✖</Text>
+                <TouchableOpacity onPress={() => deleteLine(item.id)} style={styles.smallButton}>
+                  <Text style={styles.smallButtonText}>✖</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -166,28 +149,30 @@ export default function EditorScreen() {
       />
 
       <View style={styles.buttonRow}>
-        <Button
-          title="💾 Sauvegarder"
-          onPress={() => saveLines(lines)}
-          color="#4CAF50"
-        />
-        <Button
-          title="🗑️ Réinitialiser"
-          onPress={() => { clearLines();}}
-          color="#F44336"
-        />
+        <TouchableOpacity style={[styles.appButton, { backgroundColor: COLORS.success }]} onPress={() => saveLines(lines)}>
+          <Text style={styles.appButtonText}>💾 Sauvegarder</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.appButton, { backgroundColor: COLORS.danger }]} onPress={clearLines}>
+          <Text style={styles.appButtonText}>🗑️ Réinitialiser</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 64, paddingHorizontal: 16, backgroundColor: '#111' },
+  container: {
+    flex: 1,
+    paddingTop: 64,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+  },
   title: {
-    fontSize: 26,
-    color: 'white',
+    fontSize: SIZES.title,
+    color: COLORS.textLight,
     textAlign: 'center',
     marginBottom: 24,
+    fontWeight: 'bold',
   },
   inputRow: {
     flexDirection: 'column',
@@ -200,7 +185,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#222',
-    color: 'white',
+    color: COLORS.textLight,
     padding: 10,
     borderRadius: 6,
     flex: 1,
@@ -218,27 +203,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lineText: {
-    color: 'white',
-    fontSize: 16,
+    color: COLORS.textLight,
+    fontSize: SIZES.text,
     flex: 1,
   },
   actions: {
     flexDirection: 'row',
     gap: 8,
   },
-  actionButton: {
-    backgroundColor: '#444',
+  smallButton: {
+    backgroundColor: COLORS.secondary,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 6,
   },
-  actionText: {
-    color: 'white',
+  smallButtonText: {
+    color: COLORS.textLight,
     fontSize: 18,
+  },
+  actionButton: {
+    marginTop: 8,
+    backgroundColor: COLORS.primary,
+    padding: 12,
+    borderRadius: SIZES.borderRadius,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: COLORS.textLight,
+    fontSize: SIZES.text,
+    fontWeight: 600,
   },
   backButtonText: {
     fontSize: 28,
-    color: 'white',
+    color: COLORS.textLight,
   },
   topBar: {
     position: 'absolute',
@@ -251,13 +248,25 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   statusMessage: {
-    color: '#0f0',
+    color: COLORS.success,
     fontSize: 14,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
     marginTop: 16,
     marginBottom: 24,
+  },
+  appButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: SIZES.borderRadius,
+    alignItems: 'center',
+  },
+  appButtonText: {
+    color: COLORS.textLight,
+    fontSize: SIZES.text,
+    fontWeight: 600,
   },
 });

@@ -1,21 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-
-const STORAGE_KEY = 'tirLines';
-
-type TirLine = {
-  id: string;
-  time: number;
-};
-
-const COLORS = {
-  default: '#34495e',
-  ready: '#2ecc71',
-  warning: '#f39c12',
-  danger: '#e74c3c',
-};
+import { COLORS, SIZES } from '../constants/theme';
+import { TirLine } from '../constants/types';
+import { STORAGE_KEYS } from '../constants/storage';
 
 export default function ExecutionScreen() {
   const [lines, setLines] = useState<TirLine[]>([]);
@@ -23,18 +11,16 @@ export default function ExecutionScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const navigation = useNavigation();
 
   const nextLine = lines.find(line => line.time >= elapsed);
   const timeToNext = nextLine ? nextLine.time - elapsed : null;
 
   const lastLineIdRef = useRef<string | null>(null);
 
-  // Chargement des lignes
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        const saved = await AsyncStorage.getItem(STORAGE_KEYS.TIR_LINES);
         if (saved) setLines(JSON.parse(saved));
       } catch (e) {
         console.error('Erreur chargement tirLines:', e);
@@ -43,7 +29,6 @@ export default function ExecutionScreen() {
     })();
   }, []);
 
-  // Tick timer
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -56,17 +41,14 @@ export default function ExecutionScreen() {
     };
   }, [running]);
 
-  // Vibration à chaque nouvelle ligne
   useEffect(() => {
     if (!running || !nextLine) return;
-
     if (lastLineIdRef.current !== nextLine.id && nextLine.time === elapsed) {
       Vibration.vibrate(1000);
       lastLineIdRef.current = nextLine.id;
     }
   }, [elapsed, nextLine, running]);
 
-  // Décompte initial
   useEffect(() => {
     if (countdown === null) return;
     if (countdown === 0) {
@@ -101,13 +83,9 @@ export default function ExecutionScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>←</Text>
-      </TouchableOpacity>
 
       <Text style={styles.title}>Exécution</Text>
 
-      {/* Bloc compte à rebours (espace réservé même s’il disparaît) */}
       <View style={styles.countdownContainer}>
         {countdown !== null ? (
           <Text style={styles.countdownText}>{countdown}</Text>
@@ -116,7 +94,6 @@ export default function ExecutionScreen() {
         )}
       </View>
 
-      {/* Bloc info ligne */}
       {nextLine ? (
         <View style={styles.infoBlock}>
           <Text style={styles.nextText}>Prochaine ligne à tirer :</Text>
@@ -131,7 +108,6 @@ export default function ExecutionScreen() {
 
       <Text style={styles.elapsedText}>Temps écoulé : {formatTime(elapsed)}</Text>
 
-      {/* Boutons */}
       <View style={styles.buttons}>
         <TouchableOpacity style={styles.button} onPress={toggleRun}>
           <Text style={styles.buttonText}>
@@ -146,7 +122,6 @@ export default function ExecutionScreen() {
   );
 }
 
-// Helpers
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -162,22 +137,20 @@ function getBackgroundColor({
   countdown: number | null;
   timeToNext: number | null;
 }) {
-  if (!running) return COLORS.default;
+  if (!running) return COLORS.background;
   if (countdown !== null) return countdown === 1 ? COLORS.danger : COLORS.warning;
   if (timeToNext !== null) {
-    if (timeToNext > 5) return COLORS.ready;
+    if (timeToNext > 5) return COLORS.success;
     if (timeToNext > 0) return COLORS.warning;
     if (timeToNext === 0) return COLORS.danger;
   }
-  return COLORS.default;
+  return COLORS.background;
 }
 
-
-// 🎨 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: SIZES.padding,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -188,80 +161,77 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   backText: {
-    color: '#fff',
+    color: COLORS.textLight,
     fontSize: 28,
   },
   title: {
-    fontSize: 36,
+    fontSize: SIZES.title,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLORS.textLight,
     marginBottom: 40,
   },
   countdownText: {
-    fontSize: 48,
+    fontSize: SIZES.large,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLORS.textLight,
+    marginBottom: 30,
+  },
+  countdownPlaceholder: {
+    fontSize: SIZES.large,
+    fontWeight: 'bold',
+    color: COLORS.textPlaceholder,
+  },
+  countdownContainer: {
+    height: 100,
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  infoBlock: {
+    alignItems: 'center',
     marginBottom: 30,
   },
   nextText: {
-    fontSize: 20,
-    color: '#eee',
+    fontSize: SIZES.text + 2,
+    color: COLORS.textLight,
   },
   lineText: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: SIZES.subtitle,
+    fontWeight: 600,
+    color: COLORS.textLight,
     marginVertical: 10,
   },
   timerText: {
-    fontSize: 24,
-    color: '#fff',
+    fontSize: SIZES.text + 6,
+    color: COLORS.textLight,
     marginBottom: 30,
   },
-  elapsedText: {
-    fontSize: 18,
-    color: '#ccc',
+  finishedText: {
+    fontSize: SIZES.text + 6,
+    fontWeight: 600,
+    color: COLORS.finished,
     marginBottom: 50,
   },
-  finishedText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#95a5a6',
+  elapsedText: {
+    fontSize: SIZES.text,
+    color: COLORS.textMuted,
     marginBottom: 50,
   },
   buttons: {
     gap: 20,
   },
   button: {
-    backgroundColor: '#1e90ff',
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 30,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: SIZES.borderRadius,
     marginHorizontal: 10,
   },
   resetButton: {
-    backgroundColor: '#e74c3c',
-  },
-  skipButton: {
-    backgroundColor: '#9b59b6',
+    backgroundColor: COLORS.danger,
   },
   buttonText: {
-    color: 'white',
-    fontSize: 18,
+    color: COLORS.textLight,
+    fontSize: SIZES.text,
     textAlign: 'center',
-  },
-    countdownContainer: {
-    height: 100,
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  countdownPlaceholder: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: 'transparent',
-  },
-  infoBlock: {
-    alignItems: 'center',
-    marginBottom: 30,
   },
 });
