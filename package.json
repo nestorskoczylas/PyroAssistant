@@ -1,6 +1,6 @@
 {
-  "name": "PyroAssistant",
-  "version": "0.0.1",
+  "name": "pyroassistant",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
