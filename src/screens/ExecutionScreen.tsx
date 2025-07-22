@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SIZES } from '../constants/theme';
-import { TirLine } from '../constants/types';
+import { Settings, TirLine } from '../constants/types';
 import { STORAGE_KEYS } from '../constants/storage';
 
 export default function ExecutionScreen() {
@@ -10,9 +10,12 @@ export default function ExecutionScreen() {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [settings, setSettings] = useState<Settings>({ subtractOneSecond: false });
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const nextLine = lines.find(line => line.time >= elapsed);
+  const adjustedLines = applyCumulativeOffset(lines, settings.subtractOneSecond);
+
+  const nextLine = adjustedLines.find(line => line.time >= elapsed);
   const timeToNext = nextLine ? nextLine.time - elapsed : null;
 
   const lastLineIdRef = useRef<string | null>(null);
@@ -60,6 +63,15 @@ export default function ExecutionScreen() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEYS.SETTINGS).then(saved => {
+      if (saved) {
+        const parsed: Settings = JSON.parse(saved);
+        setSettings(parsed);
+      }
+    });
+  }, []);
+
   const toggleRun = () => {
     if (running || countdown !== null) {
       setRunning(false);
@@ -98,7 +110,7 @@ export default function ExecutionScreen() {
         <View style={styles.infoBlock}>
           <Text style={styles.nextText}>Prochaine ligne à tirer :</Text>
           <Text style={styles.lineText}>
-            Ligne #{lines.indexOf(nextLine) + 1} — {formatTime(nextLine.time)}
+            Ligne #{lines.findIndex(l => l.id === nextLine.id) + 1} — {formatTime(nextLine.time)}
           </Text>
           <Text style={styles.timerText}>Temps restant : {timeToNext}s</Text>
         </View>
@@ -128,15 +140,8 @@ function formatTime(seconds: number): string {
   return `${m}m ${s < 10 ? '0' : ''}${s}s`;
 }
 
-function getBackgroundColor({
-  running,
-  countdown,
-  timeToNext,
-}: {
-  running: boolean;
-  countdown: number | null;
-  timeToNext: number | null;
-}) {
+function getBackgroundColor({running,countdown,timeToNext,}: {
+  running: boolean; countdown: number | null; timeToNext: number | null; }) {
   if (!running) return COLORS.background;
   if (countdown !== null) return countdown === 1 ? COLORS.danger : COLORS.warning;
   if (timeToNext !== null) {
@@ -145,6 +150,21 @@ function getBackgroundColor({
     if (timeToNext === 0) return COLORS.danger;
   }
   return COLORS.background;
+}
+
+function applyCumulativeOffset(originalLines: TirLine[], subtract: boolean): TirLine[] {
+  if (!subtract) return originalLines;
+
+  // On trie les lignes dans l’ordre croissant (comme dans l'exécution)
+  const sorted = [...originalLines].sort((a, b) => a.time - b.time);
+
+  // On applique l’offset progressif
+  const adjusted = sorted.map((line, index) => ({
+    ...line,
+    time: Math.max(0, line.time - index),
+  }));
+
+  return adjusted;
 }
 
 const styles = StyleSheet.create({
