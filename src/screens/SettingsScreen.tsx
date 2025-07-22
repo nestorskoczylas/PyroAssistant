@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '../constants/storage';
+import { STORAGE_KEYS, storage } from '../constants/storage';
 import { Settings } from '../constants/types';
 import { COLORS, SIZES } from '../constants/theme';
 
@@ -9,19 +8,18 @@ export default function SettingsScreen() {
   const [subtractOneSecond, setSubtractOneSecond] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEYS.SETTINGS).then(saved => {
-      if (saved) {
-        const parsed: Settings = JSON.parse(saved);
-        setSubtractOneSecond(parsed.subtractOneSecond);
-      }
-    });
+    const saved = storage.getString(STORAGE_KEYS.SETTINGS);
+    if (saved) {
+      const parsed: Settings = JSON.parse(saved);
+      setSubtractOneSecond(parsed.subtractOneSecond);
+    }
   }, []);
 
   const toggleSwitch = async () => {
     const newValue = !subtractOneSecond;
     setSubtractOneSecond(newValue);
     const newSettings: Settings = { subtractOneSecond: newValue };
-    await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+    storage.set(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
   };
 
   return (

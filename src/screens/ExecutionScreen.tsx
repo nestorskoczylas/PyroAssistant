@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Vibration } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SIZES } from '../constants/theme';
 import { Settings, TirLine } from '../constants/types';
-import { STORAGE_KEYS } from '../constants/storage';
+import { STORAGE_KEYS, storage } from '../constants/storage';
 
 export default function ExecutionScreen() {
   const [lines, setLines] = useState<TirLine[]>([]);
@@ -23,7 +22,7 @@ export default function ExecutionScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEYS.TIR_LINES);
+        const saved = storage.getString(STORAGE_KEYS.TIR_LINES);
         if (saved) setLines(JSON.parse(saved));
       } catch (e) {
         console.error('Erreur chargement tirLines:', e);
@@ -64,12 +63,11 @@ export default function ExecutionScreen() {
   }, [countdown]);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEYS.SETTINGS).then(saved => {
-      if (saved) {
-        const parsed: Settings = JSON.parse(saved);
-        setSettings(parsed);
-      }
-    });
+    const saved = storage.getString(STORAGE_KEYS.SETTINGS);
+    if (saved) {
+      const parsed: Settings = JSON.parse(saved);
+      setSettings(parsed);
+    }
   }, []);
 
   const toggleRun = () => {

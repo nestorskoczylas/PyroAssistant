@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TirLine } from '../constants/types';
 import { COLORS, SIZES } from '../constants/theme';
-import { STORAGE_KEYS } from '../constants/storage';
+import { STORAGE_KEYS, storage } from '../constants/storage';
 
 export default function EditorScreen() {
   const [lines, setLines] = useState<TirLine[]>([]);
@@ -19,7 +18,7 @@ export default function EditorScreen() {
   useEffect(() => {
     const loadLines = async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEYS.TIR_LINES);
+        const saved = storage.getString(STORAGE_KEYS.TIR_LINES);
         if (saved) setLines(JSON.parse(saved));
       } catch (e) {
         console.error('Erreur de chargement', e);
@@ -30,7 +29,7 @@ export default function EditorScreen() {
 
   const saveLines = async (linesToSave: TirLine[]) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.TIR_LINES, JSON.stringify(linesToSave));
+      storage.set(STORAGE_KEYS.TIR_LINES, JSON.stringify(linesToSave));
       setStatusMessage('Sauvegardé avec succès');
       setTimeout(() => setStatusMessage(''), 2000);
     } catch (e) {
