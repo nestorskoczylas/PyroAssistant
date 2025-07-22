@@ -10,6 +10,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.settingsIcon} onPress={() => navigation.navigate('Settings')}>
+        <Text style={styles.iconText}>⚙️</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>PyroAssistant</Text>
 
       <View style={styles.buttonGroup}>
@@ -38,6 +42,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SIZES.padding,
+  },
+  settingsIcon: {
+    position: 'absolute',
+    top: 32,
+    right: 24,
+    zIndex: 10,
+  },
+  iconText: {
+    fontSize: 28,
+    color: COLORS.textLight,
   },
   title: {
     fontSize: SIZES.title,
