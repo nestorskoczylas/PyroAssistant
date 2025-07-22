@@ -66,6 +66,7 @@ L'application utilise React Navigation avec une structure simple à deux écrans
 * **HomeScreen** : choix entre édition ou exécution
 * **EditorScreen** : édition de la feuille de tir
 * **ExecutionScreen** : affichage du compte à rebours et vibrations synchronisées
+* **SettingsScreen** : gestion des paramètres de l'application
 
 ## 📁 Structure du projet
 
@@ -75,6 +76,7 @@ L'application utilise React Navigation avec une structure simple à deux écrans
     HomeScreen.tsx
     EditorScreen.tsx
     ExecutionScreen.tsx
+    SettingsScreen.tsx
   /navigation
     types.ts
   /constants
