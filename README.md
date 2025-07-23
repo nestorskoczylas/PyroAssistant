@@ -5,7 +5,7 @@
 ## 📱 Fonctionnalités
 
 * ✍️ **Édition de feuille de tir** : ajoute, modifie ou supprime des temps personnalisés.
-* 💾 **Sauvegarde locale** : persistance via `AsyncStorage`.
+* 💾 **Sauvegarde locale** : persistance via `MMKV`.
 * 🎬 **Exécution** : lance une feuille de tir avec fond dynamique et retour haptique à chaque étape.
 * 🗑️ **Réinitialisation rapide** : un bouton pour tout effacer et repartir de zéro.
 * 🎨 **Thème unifié** : couleurs, tailles et polices centralisées dans `theme.ts`.
